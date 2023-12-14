@@ -1,4 +1,4 @@
-@ECHO OFF & NET SESSION >NUL 2>&1 
+@ECHO OFF & NET SESSION >NUL 2>&1
 IF %ERRORLEVEL% == 0 (ECHO Administrator check passed...) ELSE (ECHO You need to run this command with administrative rights.  Is User Account Control enabled? && pause && goto ENDSCRIPT)
 COLOR 1F
 SET GITORG=DesktopECHO
@@ -16,7 +16,7 @@ REM ## Install Kali from AppStore if needed
 PowerShell.exe -Command "wsl -d kali-linux -e 'uname' > $env:TEMP\DistroTestAlive.TMP ; $alive = Get-Content $env:TEMP\DistroTestAlive.TMP ; IF ($Alive -ne 'Linux') { Start-BitsTransfer https://aka.ms/wsl-kali-linux-new -Destination $env:TEMP\Kali.AppX ; WSL.EXE --set-default-version 1 > $null ; Add-AppxPackage $env:TEMP\Kali.AppX ; Write-Host ; Write-Host 'NOTE: Open the "Kali Linux" app from your Start Menu.' ; Write-Host 'When Kali initialization completes' ; PAUSE ; Write-Host }"
 
 REM ## Acquire LxRunOffline
-MKDIR %TEMP%\Kali-xRDP >NUL 2>&1 
+MKDIR %TEMP%\Kali-xRDP >NUL 2>&1
 IF NOT EXIST "%TEMP%\LxRunOffline.exe" POWERSHELL.EXE -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; wget https://github.com/DesktopECHO/Pi-Hole-for-WSL1/blob/master/LxRunOffline-v3.5.0-33-gbdc6d7d-msvc.zip?raw=true -UseBasicParsing -OutFile '%TEMP%\LxRunOffline.zip' ; Expand-Archive -Path '%TEMP%\LxRunOffline.zip' -DestinationPath '%TEMP%' -Force ; copy '%TEMP%\LxRunOffline-v3.5.0-33-gbdc6d7d-msvc\*.exe' '%TEMP%'" > NUL
 
 REM ## Find system DPI setting and get installation parameters
@@ -43,31 +43,31 @@ SET GO="%DISTROFULL%\LxRunOffline.exe" r -n "%DISTRO%" -c
 IF %DEFEXL%==X (POWERSHELL.EXE -Command "wget %BASE%/excludeWSL.ps1 -UseBasicParsing -OutFile '%DISTROFULL%\excludeWSL.ps1'" & START /WAIT /MIN "Add exclusions in Windows Defender" "POWERSHELL.EXE" "-ExecutionPolicy" "Bypass" "-Command" ".\excludeWSL.ps1" "%DISTROFULL%" &  DEL ".\excludeWSL.ps1")
 
 REM ## Workaround potential DNS issue in WSL and update Keyring
-%GO% "rm -rf /etc/resolv.conf ; echo 'nameserver 9.9.9.9' > /etc/resolv.conf ; echo 'nameserver 8.8.8.8' >> /etc/resolv.conf ; chattr +i /etc/resolv.conf" >NUL 2>&1 
+%GO% "rm -rf /etc/resolv.conf ; echo 'nameserver 9.9.9.9' > /etc/resolv.conf ; echo 'nameserver 8.8.8.8' >> /etc/resolv.conf ; chattr +i /etc/resolv.conf" >NUL 2>&1
 %GO% "wget -q http://http.kali.org/kali/pool/main/k/kali-archive-keyring/kali-archive-keyring_2022.1_all.deb -O /tmp/kali-archive-keyring_2022.1_all.deb ; dpkg -i /tmp/kali-archive-keyring_2022.1_all.deb" > NUL
 
 REM ## Loop until we get a successful repo update
 :APTRELY
 IF EXIST apterr DEL apterr
 START /MIN /WAIT "apt-get update" %GO% "apt-get update 2> apterr"
-FOR /F %%A in ("apterr") do If %%~zA NEQ 0 GOTO APTRELY 
+FOR /F %%A in ("apterr") do If %%~zA NEQ 0 GOTO APTRELY
 
 ECHO:
 ECHO [%TIME:~0,8%] Prepare Distro                          (ETA: 1m30s)
-%GO% "DEBIAN_FRONTEND=noninteractive apt-get download libc-bin libc-l10n libc6 libpam0g locales-all gcc-12-base libcrypt1 libgcc-s1 libstdc++6 ; DEBIAN_FRONTEND=noninteractive dpkg -i --force-all ./*.deb ; DEBIAN_FRONTEND=noninteractive apt-get -fy --allow-downgrades install ; rm *.deb ; DEBIAN_FRONTEND=noninteractive apt-get -y --allow-downgrades --no-install-recommends install git gnupg2 libc-ares2 libssh2-1 libaria2-0 aria2 ; cd /tmp ; rm -rf %GITPRJ% ; git clone -b %BRANCH% --depth=1 https://github.com/%GITORG%/%GITPRJ%.git" > "%TEMP%\Kali-xRDP\%TIME:~0,2%%TIME:~3,2%%TIME:~6,2% Prepare Distro.log" 2>&1
+%GO% "dpkg --purge --force-all locales-all ; DEBIAN_FRONTEND=noninteractive apt-get download libc-bin libc-l10n libc6 libpam0g locales-all libcrypt1 libgcc-s1 libstdc++6 libpam-runtime libpam-modules-bin libpam-modules gcc-13-base libzstd1 ; DEBIAN_FRONTEND=noninteractive dpkg -i --force-all ./*.deb ; rm ./*.deb ; DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install git gnupg2 libc-ares2 libssh2-1 libaria2-0 aria2 ; cd /tmp ; rm -rf %GITPRJ% ; git clone -b %BRANCH% --depth=1 https://github.com/%GITORG%/%GITPRJ%.git ; chmod +x /tmp/Kali-xRDP/dist/usr/local/bin/* ; cp -p /tmp/Kali-xRDP/dist/usr/local/bin/systemd-sysusers /usr/local/bin ; apt-get -fy install systemd --no-install-recommends ; cp -p /tmp/Kali-xRDP/dist/usr/local/bin/systemd-sysusers /usr/bin ; apt-get -fy install" > "%TEMP%\Kali-xRDP\%TIME:~0,2%%TIME:~3,2%%TIME:~6,2% Prepare Distro.log" 2>&1
 %GO% "find /tmp/Kali-xRDP -type d -exec chmod 755 {} \;"
 %GO% "find /tmp/Kali-xRDP -type f -exec chmod 644 {} \;"
 %GO% "chmod +x /tmp/Kali-xRDP/dist/usr/local/bin/apt-fast ; cp -p /tmp/Kali-xRDP/dist/usr/local/bin/apt-fast /usr/local/bin ; chmod 755 /tmp/Kali-xRDP/dist/etc/profile.d/xWSL.sh /tmp/Kali-xRDP/dist/etc/xrdp/startwm.sh /tmp/Kali-xRDP/dist/usr/bin/pm-is-supported /tmp/Kali-xRDP/dist/usr/local/bin/restartwsl /tmp/Kali-xRDP/dist/usr/local/bin/initwsl ; chmod -R 7700 /tmp/Kali-xRDP/dist/etc/skel/.local"
 
 ECHO [%TIME:~0,8%] 'kali-linux-core' metapackage and xRDP  (ETA: 3m30s)
-%GO% "apt-get -y install opensysusers acl ; echo 'exit 0' > /usr/bin/setfacl ; echo 'exit 0' > /usr/bin/lspci ; chmod +x /usr/bin/lspci ; apt-get -fy install ; DEBIAN_FRONTEND=noninteractive apt-fast -y install --allow-downgrades /tmp/Kali-xRDP/deb/x*.deb /tmp/Kali-xRDP/deb/synaptic_0.90.2_amd64.deb /tmp/Kali-xRDP/deb/g*.deb /tmp/Kali-xRDP/deb/lib*.deb /tmp/Kali-xRDP/deb/multiarch-support_2.27-3ubuntu1_amd64.deb /tmp/Kali-xRDP/deb/wslu_3.2.1-0kali1_amd64.deb /tmp/Kali-xRDP/deb/fonts-cascadia-code_2102.03-1_all.deb /tmp/Kali-xRDP/deb/pulseaudio-module-xrdp*.deb libasound2-plugins libfftw3-single3 libpulsedsp libspeexdsp1 pulseaudio pulseaudio-utils sysv-rc libxcb-damage0 x11-apps x11-session-utils x11-xserver-utils xserver-common xserver-xorg xserver-xorg-core xserver-xorg-legacy dialog distro-info-data dumb-init inetutils-syslogd xdg-utils avahi-daemon libnss-mdns binutils putty unzip zip unzip dbus-x11 samba-common-bin lhasa arj unace liblhasa0 apt-config-icons apt-config-icons-hidpi apt-config-icons-large apt-config-icons-large-hidpi libvte-2.91-0 libvte-2.91-common libdbus-glib-1-2 xbase-clients python3-psutil kali-linux-core moreutils --no-install-recommends" > "%TEMP%\Kali-xRDP\%TIME:~0,2%%TIME:~3,2%%TIME:~6,2% xRDP and 'kali-linux-core' metapackage.log" 2>&1
+%GO% "DEBIAN_FRONTEND=noninteractive apt-fast -y install --allow-downgrades /tmp/Kali-xRDP/deb/x*.deb /tmp/Kali-xRDP/deb/synaptic_0.90.2_amd64.deb /tmp/Kali-xRDP/deb/g*.deb /tmp/Kali-xRDP/deb/lib*.deb /tmp/Kali-xRDP/deb/multiarch-support_2.27-3ubuntu1_amd64.deb /tmp/Kali-xRDP/deb/wslu_3.2.1-0kali1_amd64.deb /tmp/Kali-xRDP/deb/fonts-cascadia-code_2102.03-1_all.deb /tmp/Kali-xRDP/deb/pulseaudio-module-xrdp*.deb libasound2-plugins libfftw3-single3 libpulsedsp libspeexdsp1 pulseaudio pulseaudio-utils sysv-rc libxcb-damage0 x11-apps x11-session-utils x11-xserver-utils xserver-common xserver-xorg xserver-xorg-core xserver-xorg-legacy dialog distro-info-data dumb-init inetutils-syslogd xdg-utils avahi-daemon libnss-mdns binutils putty unzip zip unzip dbus-x11 samba-common-bin lhasa arj unace liblhasa0 apt-config-icons apt-config-icons-hidpi apt-config-icons-large apt-config-icons-large-hidpi libvte-2.91-0 libvte-2.91-common libdbus-glib-1-2 xbase-clients python3-psutil kali-linux-core moreutils acl --no-install-recommends ; echo 'exit 0' > /usr/bin/setfacl ; echo 'exit 0' > /usr/bin/lspci ; chmod +x /usr/bin/lspci" > "%TEMP%\Kali-xRDP\%TIME:~0,2%%TIME:~3,2%%TIME:~6,2% xRDP and 'kali-linux-core' metapackage.log" 2>&1
 
 ECHO [%TIME:~0,8%] Kali Xfce desktop environment           (ETA: 3m00s)
-%GO% "DEBIAN_FRONTEND=noninteractive apt-fast -y install xfce4-settings xfdesktop4 xfce4-session xfdesktop4-data xfce4 xfwm4 qt5ct lsb-release xfce4-datetime-plugin ristretto parole mousepad mate-calc-common xfce4-taskmanager mate-calc xfce4-screenshooter xfce4-clipman xfce4-clipman-plugin xfce4-cpugraph-plugin xfce4-whiskermenu-plugin xdg-user-dirs xdg-user-dirs-gtk kazam kali-menu kali-themes kali-debtags kali-wallpapers-2023 gstreamer1.0-gl gstreamer1.0-plugins-bad gstreamer1.0-plugins-bad-apps gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-good gstreamer1.0-tools mesa-utils qterminal libqt5x11extras5 libqtermwidget5-1 libutf8proc2 qterminal qtermwidget5-data epiphany-browser pcscd --no-install-recommends ; update-rc.d pcscd remove" > "%TEMP%\Kali-xRDP\%TIME:~0,2%%TIME:~3,2%%TIME:~6,2% Kali Xfce desktop environment.log" 2>&1
+%GO% "DEBIAN_FRONTEND=noninteractive apt-fast -y install xfce4-settings xfdesktop4 xfce4-session xfdesktop4-data xfce4 xfwm4 qt5ct lsb-release xfce4-datetime-plugin ristretto parole mousepad mate-calc-common xfce4-taskmanager mate-calc xfce4-screenshooter xfce4-clipman xfce4-clipman-plugin xfce4-cpugraph-plugin xfce4-whiskermenu-plugin xdg-user-dirs xdg-user-dirs-gtk kazam kali-menu kali-themes kali-debtags kali-wallpapers-2023 gstreamer1.0-gl gstreamer1.0-plugins-bad gstreamer1.0-plugins-bad-apps gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-good gstreamer1.0-tools mesa-utils qterminal libqt5x11extras5 libqtermwidget5-1 qterminal qtermwidget5-data epiphany-browser pcscd --no-install-recommends ; update-rc.d pcscd remove" > "%TEMP%\Kali-xRDP\%TIME:~0,2%%TIME:~3,2%%TIME:~6,2% Kali Xfce desktop environment.log" 2>&1
 
 REM ## Additional items to install can go here...
 ECHO [%TIME:~0,8%] Extras [Seamonkey, Zenmap, CRD]         (ETA: 1m30s)
-%GO% "apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B7B9C16F2667CA5C CCC158AFC1289A29 ; echo 'deb http://downloads.sourceforge.net/project/ubuntuzilla/mozilla/apt all main' > /etc/apt/sources.list.d/mozilla.list ; cp /etc/apt/trusted.gpg /etc/apt/trusted.gpg.d ; apt-get update" >NUL 2>&1 
+%GO% "apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B7B9C16F2667CA5C CCC158AFC1289A29 ; echo 'deb http://downloads.sourceforge.net/project/ubuntuzilla/mozilla/apt all main' > /etc/apt/sources.list.d/mozilla.list ; cp /etc/apt/trusted.gpg /etc/apt/trusted.gpg.d ; apt-get update" >NUL 2>&1
 %GO% "wget -q https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb -O /tmp/chrome-remote-desktop_current_amd64.deb ; DEBIAN_FRONTEND=noninteractive apt-fast -y install tilix atril engrampa seamonkey-mozilla-build nmap liblinear-tools liblinear-dev ncat ndiff /tmp/chrome-remote-desktop_current_amd64.deb /tmp/Kali-xRDP/deb/python-pkg-resources_44.1.1-1_all.deb /tmp/Kali-xRDP/deb/zenmap_7.92-1_all.deb /tmp/Kali-xRDP/deb/python-gtk2_2.24.0-5.1_amd64.deb /tmp/Kali-xRDP/deb/python-gobject-2_2.28.6-14ubuntu1_amd64.deb /tmp/Kali-xRDP/deb/python-numpy_1.16.5-2ubuntu7_amd64.deb /tmp/Kali-xRDP/deb/python-cairo_1.16.2-2ubuntu2_amd64.deb /tmp/Kali-xRDP/deb/libffi7_3.3-6_amd64.deb /tmp/Kali-xRDP/deb/python-glade2_2.24.0-5.1_amd64.deb python2" > "%TEMP%\Kali-xRDP\%TIME:~0,2%%TIME:~3,2%%TIME:~6,2% Extras [Seamonkey, Zenmap, CRD].log" 2>&1
 %GO% "mv /usr/bin/f2py /usr/bin/f2py.P27 ; apt-get download python3-numpy ; dpkg -i --force-all python3-numpy_1*.deb ; rm python3-numpy_1*.deb" >NUL 2>&1
 %GO% "update-alternatives --install /usr/bin/www-browser www-browser /usr/bin/seamonkey 100 ; update-alternatives --install /usr/bin/gnome-www-browser gnome-www-browser /usr/bin/seamonkey 100 ; update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/bin/seamonkey 100" >NUL 2>&1
@@ -88,16 +88,16 @@ IF %LINDPI% LSS 120 ( %GO% "sed -i 's/Kali-Dark-HiDPI/Kali-Dark/g' /tmp/Kali-xRD
 %GO% "sed -i 's/WSLINSTANCENAME/%DISTRO%/g' /tmp/Kali-xRDP/dist/usr/local/bin/initwsl"
 %GO% "sed -i 's/#enable-dbus=yes/enable-dbus=no/g' /etc/avahi/avahi-daemon.conf ; sed -i 's/#host-name=foo/host-name=%COMPUTERNAME%-%DISTRO%/g' /etc/avahi/avahi-daemon.conf ; sed -i 's/use-ipv4=yes/use-ipv4=no/g' /etc/avahi/avahi-daemon.conf"
 %GO% "cp /mnt/c/Windows/Fonts/*.ttf /usr/share/fonts/truetype ; ssh-keygen -A ; adduser xrdp ssl-cert &> /dev/null" > NUL
-%GO% "rm /usr/lib/systemd/system/dbus-org.freedesktop.login1.service /usr/share/dbus-1/system-services/org.freedesktop.login1.service /usr/share/polkit-1/actions/org.freedesktop.login1.policy ; rm /usr/share/dbus-1/services/org.freedesktop.systemd1.service /usr/share/dbus-1/system-services/org.freedesktop.systemd1.service /usr/share/dbus-1/system.d/org.freedesktop.systemd1.conf /usr/share/polkit-1/actions/org.freedesktop.systemd1.policy /usr/share/applications/gksu.desktop" > NUL 2>&1 
-%GO% "cp -Rp /tmp/Kali-xRDP/dist/* / ; cp -Rp /tmp/Kali-xRDP/dist/etc/skel/.* /root ; chmod +x /etc/init.d/xrdp ; update-rc.d -f xrdp defaults ; update-rc.d -f inetutils-syslogd enable S 2 3 4 5 ; update-rc.d -f ssh enable S 2 3 4 5 ; update-rc.d -f avahi-daemon enable S 2 3 4 5 ; apt-get clean ; cd /tmp" >NUL 2>&1 
+%GO% "rm /usr/lib/systemd/system/dbus-org.freedesktop.login1.service /usr/share/dbus-1/system-services/org.freedesktop.login1.service /usr/share/polkit-1/actions/org.freedesktop.login1.policy ; rm /usr/share/dbus-1/services/org.freedesktop.systemd1.service /usr/share/dbus-1/system-services/org.freedesktop.systemd1.service /usr/share/dbus-1/system.d/org.freedesktop.systemd1.conf /usr/share/polkit-1/actions/org.freedesktop.systemd1.policy /usr/share/applications/gksu.desktop" > NUL 2>&1
+%GO% "cp -Rp /tmp/Kali-xRDP/dist/* / ; cp -Rp /tmp/Kali-xRDP/dist/etc/skel/.* /root ; chmod +x /etc/init.d/xrdp ; update-rc.d -f xrdp defaults ; update-rc.d -f inetutils-syslogd enable S 2 3 4 5 ; update-rc.d -f ssh enable S 2 3 4 5 ; update-rc.d -f avahi-daemon enable S 2 3 4 5 ; apt-get clean ; cd /tmp" >NUL 2>&1
 %GO% "setcap cap_net_raw+p /bin/ping"
 %GO% "sed -i 's/port=3389/port=%RDPPRT%/g' /etc/xrdp/xrdp.ini"
 %GO% "sed -i 's/thinclient_drives/.xWSL/g' /etc/xrdp/sesman.ini"
 
 SET RUNEND=%date% @ %time:~0,5%
-CD %DISTROFULL% 
+CD %DISTROFULL%
 ECHO:
-SET /p XU=Create a NEW user in Kali for xRDP GUI login. Enter username: 
+SET /p XU=Create a NEW user in Kali for xRDP GUI login. Enter username:
 POWERSHELL -Command $prd = read-host "Enter password for %XU%" -AsSecureString ; $BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($prd) ; [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR) > .tmp & set /p PWO=<.tmp
 %GO% "useradd -m -p nulltemp -s /bin/bash %XU%"
 %GO% "(echo '%XU%:%PWO%') | chpasswd"
@@ -121,13 +121,13 @@ START /MIN "%DISTRO% Init" WSL ~ -u root -d %DISTRO% -e initwsl 2
 ECHO Building RDP Connection file, Init system...
 ECHO Set OW = GetObject(^"winmgmts:^" ^& ^"^{impersonationLevel^=impersonate^}!\\.\root\cimv2^") > "%LOCALAPPDATA%\Kali-xRDP.vbs"
 ECHO Set ST = OW.Get(^"Win32_ProcessStartup^") >> "%LOCALAPPDATA%\Kali-xRDP.vbs"
-ECHO Set OC = ST.SpawnInstance_ >> "%LOCALAPPDATA%\Kali-xRDP.vbs"		
+ECHO Set OC = ST.SpawnInstance_ >> "%LOCALAPPDATA%\Kali-xRDP.vbs"
 ECHO OC.ShowWindow ^= 0 >> "%LOCALAPPDATA%\Kali-xRDP.vbs"
 ECHO Set OP = GetObject(^"winmgmts:root\cimv2:Win32_Process^") >> "%LOCALAPPDATA%\Kali-xRDP.vbs"
 ECHO WScript.Sleep 2000 >> "%LOCALAPPDATA%\Kali-xRDP.vbs"
 ECHO RT = OP.Create( ^"WSLCONFIG.EXE /t kali-linux^", null, OC, intProcessID) >> "%LOCALAPPDATA%\Kali-xRDP.vbs"
 ECHO WScript.Sleep 5000 >> "%LOCALAPPDATA%\Kali-xRDP.vbs"
-ECHO RT = OP.Create( ^"WSL.EXE ~ -u root -d kali-linux -e initwsl 2^", null, OC, intProcessID) >> "%LOCALAPPDATA%\Kali-xRDP.vbs"	
+ECHO RT = OP.Create( ^"WSL.EXE ~ -u root -d kali-linux -e initwsl 2^", null, OC, intProcessID) >> "%LOCALAPPDATA%\Kali-xRDP.vbs"
 POWERSHELL -Command "Copy-Item '%DISTROFULL%\Kali-xRDP (%XU%).rdp' ([Environment]::GetFolderPath('Desktop'))"
 ECHO Building Scheduled Task...
 %GO% "cp /tmp/Kali-xRDP/xWSL.xml ."
@@ -135,29 +135,29 @@ ECHO Building Scheduled Task...
 POWERSHELL -C "$WAI = (whoami)                       ; (Get-Content .\xWSL.xml).replace('AAAA', $WAI) | Set-Content .\xWSL.xml"
 POWERSHELL -C "$WAC = '%LOCALAPPDATA%\Kali-xRDP.vbs' ; (Get-Content .\xWSL.xml).replace('QQQQ', $WAC) | Set-Content .\xWSL.xml"
 SCHTASKS /Create /TN:%DISTRO% /XML ./xWSL.xml /F
-PING -n 6 LOCALHOST > NUL 
+PING -n 6 LOCALHOST > NUL
 ECHO:
 ECHO:      Start: %RUNSTART%
 ECHO:        End: %RUNEND%
 %GO%  "echo -ne '   Packages:'\   ; dpkg-query -l | grep "^ii" | wc -l "
-ECHO: 
+ECHO:
 ECHO:     * xRDP Server listening on port %RDPPRT% and SSHd on port %SSHPRT%.
-ECHO: 
+ECHO:
 ECHO:     * Connection file for xRDP session has been placed on your desktop.
-ECHO: 
-ECHO:     * Launch or Relaunch xRDP from Task Scheduler with the following command: 
+ECHO:
+ECHO:     * Launch or Relaunch xRDP from Task Scheduler with the following command:
 ECHO:       schtasks.exe /run /tn %DISTRO%
 ECHO:
 ECHO:     * Kill xRDP with the following command:
-ECHO        wslconfig.exe /t %DISTRO% 
-ECHO: 
+ECHO        wslconfig.exe /t %DISTRO%
+ECHO:
 ECHO:     * This is a minimal installation of Kali. To install default packages:
-ECHO:       sudo apt install kali-linux-default  
-ECHO: 
+ECHO:       sudo apt install kali-linux-default
+ECHO:
 ECHO:Installation of Kali-xRDP (%DISTRO%) complete.
 ECHO:Remote Desktop session will start shortly...
-PING -n 6 LOCALHOST > NUL 
+PING -n 6 LOCALHOST > NUL
 START "Remote Desktop Connection" "MSTSC.EXE" "/V" "Kali-xRDP (%XU%).rdp"
 CD ..
-ECHO: 
+ECHO:
 :ENDSCRIPT
